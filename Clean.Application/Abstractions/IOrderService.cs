@@ -7,7 +7,7 @@ namespace Clean.Application.Abstractions;
 
 public interface IOrderService
 {
-    public Task<PaginatedResponse<GetOrderDto>> GetOrdersAsync(OrderPaginationFilter pagination);
+    public Task<PaginatedResponse<GetOrderDto>> GetOrdersAsync(OrderPaginationFilter pagination, string userId);
     public Task<Response<GetOrderDto>> AddOrderAsync(AddOrderDto dto, string userId);
     public Task<Response<string>> UpdateOrderAsync(UpdateOrderDto dto);
     public Task<Response<string>> CancelOrderByIdAsync(int id);

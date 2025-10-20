@@ -1,6 +1,9 @@
 ﻿using Clean.Application.Abstractions;
+using Clean.Application.Services.Analytics;
+using Clean.Application.Services.Courier;
 using Clean.Application.Services.Jwt;
 using Clean.Application.Services.Menu;
+using Clean.Application.Services.Order;
 using Clean.Application.Services.Permission;
 using Clean.Application.Services.Restaurant;
 using Clean.Application.Services.User;
@@ -17,6 +20,9 @@ public static class DependencyInjection
         services.AddTransient<IUserService, UserService>();
         services.AddTransient<IRestaurantService, RestaurantService>();
         services.AddTransient<IMenuService, MenuService>();
+        services.AddTransient<IOrderService, OrderService>();
+        services.AddTransient<ICourierService, CourierService>();
+        services.AddTransient<IAnalyticsService, AnalyticsService>();
         
         services.AddScoped<IPermissionService, PermissionService>();
         services.AddTransient<IJwtTokenService, JwtTokenService>();

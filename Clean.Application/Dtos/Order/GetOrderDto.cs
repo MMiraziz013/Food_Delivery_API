@@ -16,5 +16,5 @@ public class GetOrderDto
     public PaymentStatus PaymentStatus { get; set; }
     public string RestaurantName { get; set; }
     public string CourierName { get; set; }
-    public List<GetOrderDetailDto> OrderDetails { get; set; }
+    public List<GetOrderDetailDto> OrderDetails { get; set; } = new List<GetOrderDetailDto>();
 }

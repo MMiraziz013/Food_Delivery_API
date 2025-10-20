@@ -1,0 +1,47 @@
+﻿services:
+  food_api:
+    image: food_api
+    build:
+      context: ./
+      dockerfile: Food_Delivery_API/Dockerfile
+    ports:
+      - "8080:8080"
+    volumes:
+      - uploads:/app/wwwroot/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__DefaultConnection=Server=db;Port=5432;Database=food_delivery_db;User Id=postgres;Password=postgres
+    networks:
+      - postgres-network
+
+  db:
+    image: postgres:17-alpine
+    container_name: food-delivery-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=food_delivery_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - food-postgresql-data:/var/lib/postgresql/data
+    networks:
+      - postgres-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+networks:
+  postgres-network:
+    driver: bridge
+
+volumes:
+  food-postgresql-data:
+  uploads:
