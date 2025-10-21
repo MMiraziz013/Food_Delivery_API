@@ -53,4 +53,10 @@ public static class RolePermissionService
             .Distinct()
             .ToList();
     }
+    
+    public static IEnumerable<string> GetAllRoles()
+    {
+        return _rolePermissions.Keys;
+    }
+
 }

@@ -1,6 +1,9 @@
-using Microsoft.AspNetCore.Identity;
+using System.Security.Claims;
+using Clean.Application.Services.Permission;
+using Clean.Application.Security.Permission;
 using Clean.Domain.Entities;
 using Clean.Domain.Enums;
+using Microsoft.AspNetCore.Identity;
 
 namespace Clean.Infrastructure.Data.Seed;
 
@@ -19,11 +22,12 @@ public class IdentitySeeder
     {
         await SeedRolesAsync();
         await SeedAdminUserAsync();
+        await SeedPermissionsAsync(); // 👈 Attach permissions to roles
     }
 
     private async Task SeedRolesAsync()
     {
-        var roles = new List<string> { Roles.Admin, Roles.Client, Roles.Courier };
+        var roles = new List<string> { RoleConstants.Admin, RoleConstants.Client, RoleConstants.Courier };
 
         foreach (var role in roles)
         {
@@ -49,6 +53,26 @@ public class IdentitySeeder
 
         var result = await _userManager.CreateAsync(admin, "myPassword1$");
         if (result.Succeeded)
-            await _userManager.AddToRoleAsync(admin, Roles.Admin);
+            await _userManager.AddToRoleAsync(admin, RoleConstants.Admin);
+    }
+
+    private async Task SeedPermissionsAsync()
+    {
+        foreach (var roleName in RolePermissionService.GetAllRoles())
+        {
+            var role = await _roleManager.FindByNameAsync(roleName);
+            if (role == null) continue;
+
+            var permissions = RolePermissionService.GetPermissionsByRoles(new[] { roleName });
+
+            var existingClaims = await _roleManager.GetClaimsAsync(role);
+            foreach (var permission in permissions)
+            {
+                if (!existingClaims.Any(c => c.Type == "Permission" && c.Value == permission))
+                {
+                    await _roleManager.AddClaimAsync(role, new Claim("Permission", permission));
+                }
+            }
+        }
     }
 }

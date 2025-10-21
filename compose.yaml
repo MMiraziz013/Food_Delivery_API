@@ -8,6 +8,8 @@
       - "8080:8080"
     volumes:
       - uploads:/app/wwwroot/uploads
+      - food_delivery_logs:/app/logs 
+
     depends_on:
       db:
         condition: service_healthy
@@ -30,6 +32,7 @@
       - "5433:5432"
     volumes:
       - food-postgresql-data:/var/lib/postgresql/data
+      - ./logs:/app/logs
     networks:
       - postgres-network
     healthcheck:
@@ -44,4 +47,5 @@ networks:
 
 volumes:
   food-postgresql-data:
+  food_delivery_logs:   # 👈 define named volume here
   uploads:

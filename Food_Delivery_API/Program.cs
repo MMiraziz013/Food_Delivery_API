@@ -5,12 +5,13 @@ using Clean.Application.Abstractions;
 using Clean.Application.Security.Permission;
 using Clean.Infrastructure;
 using Clean.Infrastructure.Data.Seed;
+using Food_Delivery_API.Middlewares;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.EntityFrameworkCore.Storage.ValueConversion.Internal;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Serilog;
+using Serilog.Formatting.Json;
 
 namespace Food_Delivery_API;
 
@@ -18,23 +19,29 @@ public class Program
 {
     public static async Task Main(string[] args)
     {
+        Directory.CreateDirectory("logs");
+
         Log.Logger = new LoggerConfiguration()
             .Enrich.FromLogContext()
-            .WriteTo.Console() // This right here write to a console
-            .WriteTo.File("logs/log-.txt", rollingInterval: RollingInterval.Day) // This writes to a log files each day
+            .WriteTo.Console()
+            .WriteTo.File(
+                new JsonFormatter(),
+                path: "logs/log-.json",
+                rollingInterval: RollingInterval.Day,
+                rollOnFileSizeLimit: true)
             .CreateLogger();
-        
-        var builder = WebApplication.CreateBuilder(args);
 
-        // Add services to the container.
+        Log.Information("✅ Serilog initialized successfully.");
+
+        var builder = WebApplication.CreateBuilder(args);
+        builder.Host.UseSerilog();
+
         builder.Services.AddControllers()
             .AddJsonOptions(options =>
             {
                 options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
             });
 
-
-        // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
         builder.Services.AddSwaggerGen(options =>
         {
             options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
@@ -87,45 +94,30 @@ public class Program
                     }
                 };
             });
-        builder.Host.UseSerilog();
-        
-        //register permission based auth
+
         builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
         builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
-
+        builder.Services.AddScoped<LoggingMiddleware>();
         builder.Services.AddIdentityServices(builder.Configuration);
         builder.Services.AddApplicationServices(builder.Configuration);
         builder.Services.AddInfrastructureServices(builder.Configuration);
 
-
         var app = builder.Build();
-        
+
         using (var scope = app.Services.CreateScope())
         {
-            
             var db = scope.ServiceProvider.GetRequiredService<IDataContext>();
             await db.MigrateAsync();
 
             var services = scope.ServiceProvider;
 
             var identitySeeder = services.GetRequiredService<IdentitySeeder>();
-            // var domainSeeder = services.GetRequiredService<DomainSeeder>();
+            var domainSeeder = services.GetRequiredService<DomainSeeder>();
 
             await identitySeeder.SeedAsync();
-            // await domainSeeder.SeedAsync();
+            await domainSeeder.SeedAsync();
         }
 
-        // Configure the HTTP request pipeline.
-        if (app.Environment.IsDevelopment())
-        {
-            app.UseSwagger();
-            app.UseSwaggerUI(options =>
-            {
-                options.SwaggerEndpoint("/swagger/v1/swagger.json", "v1");
-                options.RoutePrefix = string.Empty;
-            });
-        }
-        
         app.UseSwagger();
         app.UseSwaggerUI(options =>
         {
@@ -133,17 +125,15 @@ public class Program
             options.RoutePrefix = string.Empty;
         });
 
-
         app.UseHttpsRedirection();
+        app.UseMiddleware<LoggingMiddleware>();
 
         app.UseAuthentication();
         app.UseAuthorization();
 
         app.MapControllers();
 
+        Log.Information("🚀 Application is starting...");
         await app.RunAsync();
     }
 }
-
-
-//TODO: Start implementing IUserService and UserService logic with Auth.
